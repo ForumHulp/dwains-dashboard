@@ -6334,7 +6334,7 @@ try{
   `;static get properties(){return{_hass:{},_config:{},notifications:{type:Array}}}setConfig(e){this.config=e}set hass(e){this._hass=e,this.requestUpdate()}constructor(){super(),this.notifications=[]}connectedCallback(){super.connectedCallback(),this._unsub||(this._subscribeNotifications(),this._notificationsUpdated())}async _subscribeNotifications(){this._unsub||(this._unsub=await this._hass.connection.subscribeEvents((()=>this._notificationsUpdated()),"dwains_dashboard_notifications_updated"))}disconnectedCallback(){super.disconnectedCallback(),this._unsub&&(this._unsub(),this._unsub=void 0)}async _notificationsUpdated(){this.notifications=await this._hass.callWS({type:"dwains_dashboard_notification/get"})||[],this.requestUpdate()}_handleDismiss(e){this._hass.callService("dwains_dashboard","notification_dismiss",{notification_id:e}),this._notificationsUpdated()}_renderNotification(e){return a.qy`
       <div class="notification-button">
         <div class="sub">
-          <div class="text">${e.message}</div>
+          <div class="text">${a.jc ? a.jc(e.message) : e.message}</div>
           <ha-icon 
             class="h-6 w-6 close" 
             icon="mdi:close" 

@@ -1,227 +1,223 @@
-import os
+"""
+Dwains Dashboard Notifications Backend with Sensor
+"""
+
+from __future__ import annotations
+
 import logging
-import json
-import io
-import time
-import voluptuous as vol
-import homeassistant.util.dt as dt_util
-
 from collections import OrderedDict
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any
+import re
 
-from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.entity import Entity, async_generate_entity_id
-from homeassistant.loader import bind_hass
-from homeassistant.util import slugify
+from homeassistant.components import websocket_api
+from homeassistant.helpers.template import Template
+from homeassistant.util import dt as dt_util
+from homeassistant.helpers.entity import async_generate_entity_id
 
-from .const import DOMAIN
-
-ATTR_CREATED_AT = "created_at"
-ATTR_MESSAGE = "message"
-ATTR_NOTIFICATION_ID = "notification_id"
-ATTR_TITLE = "title"
-ATTR_STATUS = "status"
-
-ENTITY_ID_FORMAT = DOMAIN + ".{}"
-
-EVENT_DWAINS_dashboard_NOTIFICATIONS_UPDATED = "dwains_dashboard_notifications_updated"
-
-SERVICE_CREATE = "notification_create"
-SERVICE_DISMISS = "notification_dismiss"
-SERVICE_MARK_READ = "notification_mark_read"
-
-SCHEMA_SERVICE_CREATE = vol.Schema(
-    {
-        vol.Required(ATTR_MESSAGE): cv.template,
-        vol.Optional(ATTR_TITLE): cv.template,
-        vol.Optional(ATTR_NOTIFICATION_ID): cv.string,
-    }
+from .const import (
+    DOMAIN,
+    DATA_NOTIFICATIONS,
+    ATTR_CREATED_AT,
+    ATTR_MESSAGE,
+    ATTR_TITLE,
+    ATTR_NOTIFICATION_ID,
+    ATTR_STATUS,
+    STATUS_UNREAD,
+    STATUS_READ,
+    EVENT_NOTIFICATIONS_UPDATED,
 )
 
-SCHEMA_SERVICE_DISMISS = vol.Schema({vol.Required(ATTR_NOTIFICATION_ID): cv.string})
+_LOGGER = logging.getLogger(__name__)
 
-SCHEMA_SERVICE_MARK_READ = vol.Schema({vol.Required(ATTR_NOTIFICATION_ID): cv.string})
-
+ENTITY_ID_FORMAT = DOMAIN + ".{}"
 DEFAULT_OBJECT_ID = "notification"
-
 STATE = "notifying"
-STATUS_UNREAD = "unread"
-STATUS_READ = "read"
 
-#Notifications part
-@bind_hass
-def create(hass, message, title=None, notification_id=None):
-    """Generate a notification."""
-    hass.add_job(async_create, hass, message, title, notification_id)
+# ─── Local slugify function ───────────────────────────────────
+def slugify(value: str) -> str:
+    """Slugify a string for entity_id."""
+    value = str(value).lower()
+    value = re.sub(r"[^a-z0-9_]+", "_", value)  # allow letters, numbers, underscore
+    value = re.sub(r"__+", "_", value)          # collapse multiple underscores
+    value = value.strip("_")
+    return value
 
-@bind_hass
-def dismiss(hass, notification_id):
-    """Remove a notification."""
-    hass.add_job(async_dismiss, hass, notification_id)
 
 @callback
-@bind_hass
-def async_create(
-    hass: HomeAssistant,
-    message: str,
-    title: Optional[str] = None,
-    notification_id: Optional[str] = None,
-) -> None:
-    """Generate a notification."""
-    data = {
-        key: value
-        for key, value in [
-            (ATTR_TITLE, title),
-            (ATTR_MESSAGE, message),
-            (ATTR_NOTIFICATION_ID, notification_id),
-        ]
-        if value is not None
-    }
+def async_setup_notifications(hass: HomeAssistant):
+    """Set up Dwains Dashboard notifications backend with sensor."""
 
-    hass.async_create_task(hass.services.async_call(DOMAIN, SERVICE_CREATE, data))
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][DATA_NOTIFICATIONS] = OrderedDict()
+    notifications_dict = hass.data[DOMAIN][DATA_NOTIFICATIONS]
 
-@callback
-@bind_hass
-def async_dismiss(hass: HomeAssistant, notification_id: str) -> None:
-    """Remove a notification."""
-    data = {ATTR_NOTIFICATION_ID: notification_id}
-
-    hass.async_create_task(hass.services.async_call(DOMAIN, SERVICE_DISMISS, data))
-
-@callback
-@websocket_api.websocket_command({vol.Required("type"): "dwains_dashboard_notification/get"})
-def websocket_get_notifications(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: Mapping[str, Any],
-) -> None:
-    """Return a list of dwains_dashboard_notifications."""
-    connection.send_message(
-        websocket_api.result_message(
-            msg["id"],
-            [
-                {
-                    key: data[key]
-                    for key in (
-                        ATTR_NOTIFICATION_ID,
-                        ATTR_MESSAGE,
-                        ATTR_STATUS,
-                        ATTR_TITLE,
-                        ATTR_CREATED_AT,
-                    )
-                }
-                for data in hass.data[DOMAIN]["notifications"].values()
-            ],
+    # ─── Helper: update summary sensor ─────────────────────────────
+    @callback
+    def _update_sensor():
+        hass.states.async_set(
+            "sensor.dwains_notifications",
+            len(notifications_dict),
+            {
+                "notifications": list(notifications_dict.values())
+            }
         )
-    )
-#End notifications part
 
-def notifications(hass, name):
-     #Notifications part setup
-    """Set up the dwains dashboard notification component."""
-    
-    dwains_dashboard_notifications: MutableMapping[str, MutableMapping] = OrderedDict()
-    hass.data[DOMAIN]["notifications"] = dwains_dashboard_notifications
-
+    # ─── Service: create notification ─────────────────────────────
     @callback
-    def create_service(call):
-        """Handle a create notification service call."""
-        title = call.data.get(ATTR_TITLE)
-        message = call.data.get(ATTR_MESSAGE)
-        notification_id = call.data.get(ATTR_NOTIFICATION_ID)
+    def handle_create(call):
+        title: Template | None = call.data.get(ATTR_TITLE)
+        message: Template = call.data[ATTR_MESSAGE]
+        notification_id: str | None = call.data.get(ATTR_NOTIFICATION_ID)
 
-        if notification_id is not None:
-            entity_id = ENTITY_ID_FORMAT.format(slugify(notification_id))
-        else:
-            entity_id = async_generate_entity_id(
-                ENTITY_ID_FORMAT, DEFAULT_OBJECT_ID, hass=hass
-            )
-            notification_id = entity_id.split(".")[1]
+        # Generate ID if missing
+        if notification_id is None:
+            notification_id = str(int(dt_util.utcnow().timestamp() * 1000))
 
-        attr = {}
-        if title is not None:
-            try:
-                title.hass = hass
-                title = title.async_render()
-            except TemplateError as ex:
-                _LOGGER.error("Error rendering title %s: %s", title, ex)
-                title = title.template
-
-            attr[ATTR_TITLE] = title
-
-        try:
-            message.hass = hass
-            message = message.async_render()
-        except TemplateError as ex:
-            _LOGGER.error("Error rendering message %s: %s", message, ex)
-            message = message.template
-
-        attr[ATTR_MESSAGE] = message
-
-        hass.states.async_set(entity_id, STATE, attr)
-
-        # Store notification and fire event
-        # This will eventually replace state machine storage
-        dwains_dashboard_notifications[entity_id] = {
-            ATTR_MESSAGE: message,
-            ATTR_NOTIFICATION_ID: notification_id,
-            ATTR_STATUS: STATUS_UNREAD,
-            ATTR_TITLE: title,
-            ATTR_CREATED_AT: dt_util.utcnow(),
-        }
-
-        hass.bus.async_fire(EVENT_DWAINS_dashboard_NOTIFICATIONS_UPDATED)
-
-    @callback
-    def dismiss_service(call):
-        """Handle the dismiss notification service call."""
-        notification_id = call.data.get(ATTR_NOTIFICATION_ID)
         entity_id = ENTITY_ID_FORMAT.format(slugify(notification_id))
 
-        if entity_id not in dwains_dashboard_notifications:
-            return
+        # Render templates
+        try:
+            if isinstance(message, Template):
+                message.hass = hass
+                message = message.async_render()
+        except Exception as err:
+            _LOGGER.error("Error rendering message: %s", err)
+            message = str(message)
 
-        hass.states.async_remove(entity_id)
+        try:
+            if title is not None and isinstance(title, Template):
+                title.hass = hass
+                title = title.async_render()
+        except Exception as err:
+            _LOGGER.error("Error rendering title: %s", err)
+            title = str(title)
 
-        del dwains_dashboard_notifications[entity_id]
-        hass.bus.async_fire(EVENT_DWAINS_dashboard_NOTIFICATIONS_UPDATED,
+        created_at = dt_util.utcnow()
+
+        # Overwrite or create
+        hass.states.async_set(
+            entity_id,
+            STATE,
             {
-                "action": "dismiss",
-                "notification_id": notification_id,
-                "entity_id": entity_id,
+                ATTR_NOTIFICATION_ID: notification_id,
+                ATTR_MESSAGE: message,
+                ATTR_TITLE: title,
+                ATTR_STATUS: STATUS_UNREAD,
+                ATTR_CREATED_AT: created_at,
             },
         )
 
+        notifications_dict[entity_id] = {
+            ATTR_NOTIFICATION_ID: notification_id,
+            ATTR_MESSAGE: message,
+            ATTR_TITLE: title,
+            ATTR_STATUS: STATUS_UNREAD,
+            ATTR_CREATED_AT: created_at,
+        }
+
+        hass.bus.async_fire(EVENT_NOTIFICATIONS_UPDATED)
+        _update_sensor()
+
+        _LOGGER.info(
+            "Dwains notification %s: %s",
+            "updated" if entity_id in notifications_dict else "created",
+            notification_id,
+        )
+
+
+    # ─── Service: dismiss notification ───────────────────────────
     @callback
-    def mark_read_service(call):
-        """Handle the mark_read notification service call."""
+    def handle_dismiss(call):
+        notification_id = call.data.get(ATTR_NOTIFICATION_ID)
+
+        if notification_id:
+            # Dismiss a single notification
+            entity_id = ENTITY_ID_FORMAT.format(slugify(notification_id))
+            if entity_id in notifications_dict:
+                hass.states.async_remove(entity_id)
+                del notifications_dict[entity_id]
+                hass.bus.async_fire(EVENT_NOTIFICATIONS_UPDATED, {
+                    "action": "dismiss",
+                    "notification_id": notification_id,
+                })
+                _LOGGER.info("Dwains notification dismissed: %s", notification_id)
+            else:
+                _LOGGER.warning("Notification %s not found", notification_id)
+        else:
+            # Dismiss all notifications
+            for entity_id in list(notifications_dict.keys()):
+                hass.states.async_remove(entity_id)
+                _LOGGER.info("Dwains notification dismissed: %s", entity_id)
+            notifications_dict.clear()
+            hass.bus.async_fire(EVENT_NOTIFICATIONS_UPDATED, {"action": "dismiss_all"})
+            _LOGGER.info("All Dwains notifications dismissed")
+
+        # Update the summary sensor after dismissal
+        _update_sensor()
+
+    # ─── Service: mark notification as read ──────────────────────
+    @callback
+    def handle_mark_read(call):
         notification_id = call.data.get(ATTR_NOTIFICATION_ID)
         entity_id = ENTITY_ID_FORMAT.format(slugify(notification_id))
+        notification = notifications_dict.get(entity_id)
+        if notification:
+            notification[ATTR_STATUS] = STATUS_READ
+            hass.bus.async_fire(EVENT_NOTIFICATIONS_UPDATED)
+            _update_sensor()
+            _LOGGER.info("Dwains notification marked read: %s", notification_id)
+        else:
+            _LOGGER.warning("Notification %s not found", notification_id)
 
-        if entity_id not in dwains_dashboard_notifications:
-            _LOGGER.error(
-                "Marking dwains dashboard_notification read failed: "
-                "Notification ID %s not found.",
-                notification_id,
-            )
-            return
+    # ─── Register services ───────────────────────────────────────
+    hass.services.async_register(DOMAIN, "notification_create", handle_create)
+    hass.services.async_register(DOMAIN, "notification_dismiss", handle_dismiss)
+    hass.services.async_register(DOMAIN, "notification_mark_read", handle_mark_read)
 
-        dwains_dashboard_notifications[entity_id][ATTR_STATUS] = STATUS_READ
-        hass.bus.async_fire(EVENT_DWAINS_dashboard_NOTIFICATIONS_UPDATED)
+    # ─── WebSocket: get notifications ───────────────────────────
+    @websocket_api.websocket_command({
+        "type": "dwains_dashboard_notification/get"
+    })
+    @websocket_api.async_response
+    async def ws_get_notifications(hass, connection, msg):
+        connection.send_result(
+            msg["id"],
+            [
+                {
+                    ATTR_NOTIFICATION_ID: data[ATTR_NOTIFICATION_ID],
+                    ATTR_MESSAGE: data[ATTR_MESSAGE],
+                    ATTR_STATUS: data[ATTR_STATUS],
+                    ATTR_TITLE: data.get(ATTR_TITLE),
+                    ATTR_CREATED_AT: data[ATTR_CREATED_AT],
+                }
+                for data in notifications_dict.values()
+            ]
+        )
 
-    hass.services.async_register(
-        DOMAIN, SERVICE_CREATE, create_service, SCHEMA_SERVICE_CREATE
-    )
+    # ─── Backward-compatible WebSocket ─────────────────────────
+    @websocket_api.websocket_command({
+        "type": "dwains_dashboard/notifications"
+    })
+    @websocket_api.async_response
+    async def ws_get_notifications_old(hass, connection, msg):
+        connection.send_result(
+            msg["id"],
+            [
+                {
+                    ATTR_NOTIFICATION_ID: data[ATTR_NOTIFICATION_ID],
+                    ATTR_MESSAGE: data[ATTR_MESSAGE],
+                    ATTR_STATUS: data[ATTR_STATUS],
+                    ATTR_TITLE: data.get(ATTR_TITLE),
+                    ATTR_CREATED_AT: data[ATTR_CREATED_AT],
+                }
+                for data in notifications_dict.values()
+            ]
+        )
 
-    hass.services.async_register(
-        DOMAIN, SERVICE_DISMISS, dismiss_service, SCHEMA_SERVICE_DISMISS
-    )
+    # Register WebSocket commands
+    websocket_api.async_register_command(hass, ws_get_notifications)
+    websocket_api.async_register_command(hass, ws_get_notifications_old)
 
-    hass.services.async_register(
-        DOMAIN, SERVICE_MARK_READ, mark_read_service, SCHEMA_SERVICE_MARK_READ
-    )
-
-    websocket_api.async_register_command(hass, websocket_get_notifications)
-    #End notifications part setup
+    # ─── Initialize summary sensor ───────────────────────────────
+    _update_sensor()

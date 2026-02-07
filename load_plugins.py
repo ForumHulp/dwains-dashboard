@@ -1,19 +1,32 @@
 import logging
+
 from homeassistant.components.frontend import add_extra_js_url
-from homeassistant.components.http import HomeAssistantHTTP
 from homeassistant.components.http import StaticPathConfig
-
-DATA_EXTRA_MODULE_URL = 'frontend_extra_module_url'
-
-_LOGGER = logging.getLogger(__name__)
 
 from .const import VERSION
 
-async def load_plugins(hass, name):
-    #_LOGGER.warning(f"load_plugins() version: {VERSION}")
+_LOGGER = logging.getLogger(__name__)
 
-    add_extra_js_url(hass, f"/dwains_dashboard/js/dwains-dashboard.js?version={VERSION}")
+_LOADED = "dwains_dashboard_frontend_loaded"
+
+
+async def load_plugins(hass, name):
+    if hass.data.get(_LOADED):
+        return
+
+    hass.data[_LOADED] = True
+
+    add_extra_js_url(
+        hass,
+        f"/dwains_dashboard/js/dwains-dashboard.js?version={VERSION}",
+    )
 
     await hass.http.async_register_static_paths(
-        [StaticPathConfig("/dwains_dashboard/js", hass.config.path(f"custom_components/{name}/js"), True)]
+        [
+            StaticPathConfig(
+                "/dwains_dashboard/js",
+                hass.config.path(f"custom_components/{name}/js"),
+                True,
+            )
+        ]
     )
