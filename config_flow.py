@@ -1,4 +1,3 @@
-import logging
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -6,22 +5,18 @@ from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 from .const import DOMAIN
 
-_LOGGER = logging.getLogger(__name__)
-
-SIDEPANEL_TITLE = "sidepanel_title"
-SIDEPANEL_ICON = "sidepanel_icon"
-
 HOMEPAGE_OPTIONS = {
+    "sidepanel_title": "Dwains Dashboard",
+    "sidepanel_icon": "mdi:alpha-d-box",
     "disable_clock": False,
     "am_pm_clock": True,
     "disable_welcome_message": False,
     "v2_mode": False,
     "disable_sensor_graph": False,
     "invert_cover": False,
-    "weather_entity": "",
-    "alarm_entity": "",
+    "weather_entity": "weather.thuis",
+    "alarm_entity": "alarm_control_panel.home_alarm"
 }
-
 
 class DwainsDashboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
@@ -34,11 +29,7 @@ class DwainsDashboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data=user_input,
             )
 
-        schema_dict = {
-            vol.Optional(SIDEPANEL_TITLE, default="Dwains Dashboard"): str,
-            vol.Optional(SIDEPANEL_ICON, default="mdi:alpha-d-box"): str,
-        }
-
+        schema_dict = {}
         for key, default in HOMEPAGE_OPTIONS.items():
             if key in ("weather_entity", "alarm_entity"):
                 continue
@@ -87,11 +78,7 @@ class DwainsDashboardOptionsFlow(config_entries.OptionsFlow):
             alarm_default = []
     
 
-        schema_dict = {
-            vol.Optional(SIDEPANEL_TITLE, default=self._config_entry.options.get(SIDEPANEL_TITLE, "Dwains Dashboard")): str,
-            vol.Optional(SIDEPANEL_ICON, default=self._config_entry.options.get(SIDEPANEL_ICON, "mdi:alpha-d-box")): str,
-        }
-
+        schema_dict = {}
         for key, default in HOMEPAGE_OPTIONS.items():
             if key in ("weather_entity", "alarm_entity"):
                 continue
