@@ -3,46 +3,110 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.helpers import config_validation as cv
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 SIDEPANEL_TITLE = "sidepanel_title"
 SIDEPANEL_ICON = "sidepanel_icon"
 
+HOMEPAGE_OPTIONS = {
+    "disable_clock": False,
+    "am_pm_clock": True,
+    "disable_welcome_message": False,
+    "v2_mode": False,
+    "disable_sensor_graph": False,
+    "invert_cover": False,
+    "weather_entity": "",
+    "alarm_entity": "",
+}
 
-@config_entries.HANDLERS.register("dwains_dashboard")
-class DwainsDashboardConfigFlow(config_entries.ConfigFlow):
+
+class DwainsDashboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
-        return self.async_create_entry(title="Dwains Dashboard", data={})
+
+        if user_input is not None:
+            return self.async_create_entry(
+                title="Dwains Dashboard",
+                data=user_input,
+            )
+
+        schema_dict = {
+            vol.Optional(SIDEPANEL_TITLE, default="Dwains Dashboard"): str,
+            vol.Optional(SIDEPANEL_ICON, default="mdi:alpha-d-box"): str,
+        }
+
+        for key, default in HOMEPAGE_OPTIONS.items():
+            if key in ("weather_entity", "alarm_entity"):
+                continue
+            schema_dict[vol.Optional(key, default=default)] = type(default)
+
+        schema = vol.Schema(schema_dict)
+
+        return self.async_show_form(step_id="user", data_schema=schema)
 
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return DwainsDashboardEditFlow()
+        return DwainsDashboardOptionsFlow(config_entry)
 
 
-class DwainsDashboardEditFlow(config_entries.OptionsFlow):
+def _get_entities_by_domain(hass, domain):
+    return {state.entity_id: state.entity_id for state in hass.states.async_all() if state.domain == domain}
+
+
+class DwainsDashboardOptionsFlow(config_entries.OptionsFlow):
     """OptionsFlow for Dwains Dashboard."""
+
+    def __init__(self, config_entry):
+        self._config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         if user_input is not None:
-            _LOGGER.info("Dwains Dashboard options updated: %s", user_input)
+            for key in ("weather_entity", "alarm_entity"):
+                values = user_input.get(key, [])
+                user_input[key] = values[0] if values else ""
             return self.async_create_entry(title="", data=user_input)
 
-        schema = vol.Schema({
-            vol.Optional(
-                SIDEPANEL_TITLE,
-                default=self.config_entry.options.get(SIDEPANEL_TITLE, "Dwains Dashboard")
-            ): str,
-            vol.Optional(
-                SIDEPANEL_ICON,
-                default=self.config_entry.options.get(SIDEPANEL_ICON, "mdi:alpha-d-box")
-            ): str,
-        })
+        weather_entities = _get_entities_by_domain(self.hass, "weather")
+        alarm_entities = _get_entities_by_domain(self.hass, "alarm_control_panel")
 
-        return self.async_show_form(
-            step_id="init",
-            data_schema=schema,
-        )
+        weather_default = self._config_entry.options.get("weather_entity")
+        if weather_default and weather_default in weather_entities:
+            weather_default = [weather_default]
+        else:
+            weather_default = []
+
+        alarm_default = self._config_entry.options.get("alarm_entity")
+        if alarm_default and alarm_default in alarm_entities:
+            alarm_default = [alarm_default]
+        else:
+            alarm_default = []
+    
+
+        schema_dict = {
+            vol.Optional(SIDEPANEL_TITLE, default=self._config_entry.options.get(SIDEPANEL_TITLE, "Dwains Dashboard")): str,
+            vol.Optional(SIDEPANEL_ICON, default=self._config_entry.options.get(SIDEPANEL_ICON, "mdi:alpha-d-box")): str,
+        }
+
+        for key, default in HOMEPAGE_OPTIONS.items():
+            if key in ("weather_entity", "alarm_entity"):
+                continue
+            schema_dict[vol.Optional(key, default=self._config_entry.options.get(key, default))] = type(default)
+
+        schema_dict[vol.Optional(
+            "weather_entity",
+            default=weather_default
+        )] = cv.multi_select(weather_entities)
+
+        schema_dict[vol.Optional(
+            "alarm_entity",
+            default=alarm_default
+        )] = cv.multi_select(alarm_entities)
+
+        schema = vol.Schema(schema_dict)
+
+        return self.async_show_form(step_id="init", data_schema=schema)

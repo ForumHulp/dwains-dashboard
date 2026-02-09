@@ -40,7 +40,7 @@ def render_template(fname: str, args: dict) -> io.StringIO:
 
 def load_yamll(fname: str, secrets=None, args: dict = {}) -> OrderedDict:
     if not os.path.exists(fname):
-        _LOGGER.warning("YAML file not found, skipping: %s", fname)
+        _LOGGER.debug("YAML file not found, skipping: %s", fname)
         return OrderedDict()
 
     try:

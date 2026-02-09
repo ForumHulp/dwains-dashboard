@@ -4,13 +4,24 @@ import os
 import yaml
 import shutil
 from datetime import datetime
+from homeassistant.core import HomeAssistant
+
+def config_path(hass: HomeAssistant, *subpaths) -> str:
+    """Return full path inside dwains-dashboard/configs"""
+    return hass.config.path("dwains-dashboard/configs", *subpaths)
 
 async def async_load_yaml(hass, filepath, default=None):
     """Async-safe load YAML file."""
     default = default or OrderedDict()
-    if os.path.exists(filepath) and os.stat(filepath).st_size != 0:
-        return await hass.async_add_executor_job(lambda: yaml.safe_load(open(filepath, "r")) or default)
-    return default
+
+    if not os.path.exists(filepath) or os.stat(filepath).st_size == 0:
+        return default
+
+    def _load():
+        with open(filepath, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or default
+
+    return await hass.async_add_executor_job(_load)
 
 async def async_save_yaml(hass, filepath, data):
     """Async-safe save YAML file."""
@@ -29,11 +40,16 @@ async def async_update_yaml(hass, filepath, updates: dict, key: str | None = Non
 
 async def async_remove_file_or_folder(hass, path):
     """Async-safe remove file or folder."""
-    if await hass.async_add_executor_job(os.path.exists, path):
+    def _remove():
+        if not os.path.exists(path):
+            return
+
         if os.path.isdir(path):
-            await hass.async_add_executor_job(lambda: shutil.rmtree(path, ignore_errors=True))
+            shutil.rmtree(path)
         else:
-            await hass.async_add_executor_job(lambda: os.remove(path))
+            os.remove(path)
+
+    await hass.async_add_executor_job(_remove)
 
 async def handle_ws_yaml_update(
     hass,

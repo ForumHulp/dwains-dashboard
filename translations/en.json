@@ -2,27 +2,67 @@
   "title": "Dwains Dashboard",
   "config": {
     "step": {
-      "init": {
-        "title": "Dwains Dashboard Settings",
-        "description": "",
+      "user": {
+        "title": "Dwains Dashboard",
+        "description": "Configure which items are used.",
         "data": {
-          "sidepanel_icon": "Side panel icon",
-          "sidepanel_title": "Side panel title"
+          "sidepanel_title": "Sidepanel title eng user",
+          "sidepanel_icon": "Sidepanel icon",
+          "disable_clock": "Disable clock",
+          "am_pm_clock": "Use 12-hour clock (AM/PM)",
+          "disable_welcome_message": "Disable welcome message",
+          "v2_mode": "Enable V2 mode",
+          "disable_sensor_graph": "Disable sensor graph",
+          "invert_cover": "Invert cover controls",
+          "weather_entity": "Weather entity",
+          "alarm_entity": "Alarm entity"
+        },
+        "data_description": {
+          "sidepanel_title": "Title shown above the sidepanel.",
+          "sidepanel_icon": "Icon displayed in the sidepanel.",
+          "disable_clock": "Hide the clock in the dashboard header.",
+          "am_pm_clock": "Use a 12-hour clock instead of 24-hour format.",
+          "disable_welcome_message": "Hide the welcome message in the header.",
+          "v2_mode": "Enable the dashboard V2 mode.",
+          "disable_sensor_graph": "Hide the sensor graph in the header.",
+          "invert_cover": "Invert the cover control behavior.",
+          "weather_entity": "Select the weather entity shown in the dashboard header.",
+          "alarm_entity": "Select the alarm control panel shown in the dashboard header."
         }
       }
     },
     "abort": {
-      "single_instance_allowed": "Only a single configuration of Dwains Dashboard is allowed."
+      "single_instance_allowed": "Only one instance of Dwains Dashboard is allowed."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Dwains Dashboard Settings",
-        "description": "",
+        "title": "Dwains Dashboard options",
+        "description": "Configure the appearance and behavior of Dwains Dashboard.",
         "data": {
-          "sidepanel_icon": "Side panel icon",
-          "sidepanel_title": "Side panel title"
+          "sidepanel_title": "Sidepanel title eng init",
+          "sidepanel_icon": "Sidepanel icon",
+          "disable_clock": "Disable clock",
+          "am_pm_clock": "Use 12-hour clock (AM/PM)",
+          "disable_welcome_message": "Disable welcome message",
+          "v2_mode": "Enable V2 mode",
+          "disable_sensor_graph": "Disable sensor graph",
+          "invert_cover": "Invert cover controls",
+          "weather_entity": "Weather entity",
+          "alarm_entity": "Alarm entity"
+        },
+        "data_description": {
+          "sidepanel_title": "Title shown above the sidepanel.",
+          "sidepanel_icon": "Icon displayed in the sidepanel.",
+          "disable_clock": "Hide the clock in the dashboard header.",
+          "am_pm_clock": "Use a 12-hour clock instead of 24-hour format.",
+          "disable_welcome_message": "Hide the welcome message in the header.",
+          "v2_mode": "Enable the dashboard V2 mode.",
+          "disable_sensor_graph": "Hide the sensor graph in the header.",
+          "invert_cover": "Invert the cover control behavior.",
+          "weather_entity": "Select the weather entity shown in the dashboard header.",
+          "alarm_entity": "Select the alarm control panel shown in the dashboard header."
         }
       }
     }

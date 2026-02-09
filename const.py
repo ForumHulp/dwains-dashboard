@@ -1,6 +1,18 @@
 # Domain of the integration
 DOMAIN = "dwains_dashboard"
 VERSION = "3.8.2"
+FRONTEND_LOADED = "dwains_dashboard_frontend_loaded"
+
+# Frontend JS paths
+FRONTEND_URL = f"/{DOMAIN}/js"
+FRONTEND_DIR = "js"
+FRONTEND_FILE = "dwains-dashboard.js"
+
+# Frontend title and url
+DEFAULT_TITLE = "Dwains Dashboard"
+DEFAULT_ICON = "mdi:alpha-d-box"
+DASHBOARD_URL = "dwains-dashboard"
+
 
 # Notifications
 DATA_NOTIFICATIONS = "notifications"

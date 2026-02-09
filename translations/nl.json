@@ -1,0 +1,70 @@
+{
+  "title": "Dwains Dashboard",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dwains Dashboard",
+        "description": "Configureer welke items worden gebruikt.",
+        "data": {
+          "sidepanel_title": "Zijpaneel titel",
+          "sidepanel_icon": "Zijpaneel icoon",
+          "disable_clock": "Klok uitschakelen",
+          "am_pm_clock": "12-uurs klok gebruiken (AM/PM)",
+          "disable_welcome_message": "Welkomstbericht uitschakelen",
+          "v2_mode": "V2-modus inschakelen",
+          "disable_sensor_graph": "Sensorgrafiek uitschakelen",
+          "invert_cover": "Bediening covers omkeren",
+          "weather_entity": "Weer-entiteit",
+          "alarm_entity": "Alarm entiteit"
+        },
+        "data_description": {
+          "sidepanel_title": "Titel die boven het zijpaneel wordt weergegeven.",
+          "sidepanel_icon": "Icoon dat in het zijpaneel wordt weergegeven.",
+          "disable_clock": "Verberg de klok in de dashboard header.",
+          "am_pm_clock": "Gebruik een 12-uurs klok in plaats van 24-uurs notatie.",
+          "disable_welcome_message": "Verberg het welkomstbericht in de header.",
+          "v2_mode": "Schakel de V2-modus van het dashboard in.",
+          "disable_sensor_graph": "Verberg de sensorgrafiek in de header.",
+          "invert_cover": "Keer de bediening van covers om.",
+          "weather_entity": "Selecteer de weer-entiteit die gebruikt wordt in de header.",
+          "alarm_entity": "Selecteer het alarmsysteem dat wordt weergegeven in de header."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Er is maar één instantie van Dwains Dashboard toegestaan."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Dwains Dashboard opties",
+        "description": "Configureer de weergave en werking van Dwains Dashboard.",
+        "data": {
+          "sidepanel_title": "Zijpaneel titel",
+          "sidepanel_icon": "Zijpaneel icoon",
+          "disable_clock": "Klok uitschakelen",
+          "am_pm_clock": "12-uurs klok gebruiken (AM/PM)",
+          "disable_welcome_message": "Welkomstbericht uitschakelen",
+          "v2_mode": "V2-modus inschakelen",
+          "disable_sensor_graph": "Sensorgrafiek uitschakelen",
+          "invert_cover": "Bediening covers omkeren",
+          "weather_entity": "Weer-entiteit",
+          "alarm_entity": "Alarm entiteit"
+        },
+        "data_description": {
+          "sidepanel_title": "Titel die boven het zijpaneel wordt weergegeven.",
+          "sidepanel_icon": "Icoon dat in het zijpaneel wordt weergegeven.",
+          "disable_clock": "Verberg de klok in de dashboard header.",
+          "am_pm_clock": "Gebruik een 12-uurs klok in plaats van 24-uurs notatie.",
+          "disable_welcome_message": "Verberg het welkomstbericht in de header.",
+          "v2_mode": "Schakel de V2-modus van het dashboard in.",
+          "disable_sensor_graph": "Verberg de sensorgrafiek in de header.",
+          "invert_cover": "Keer de bediening van covers om.",
+          "weather_entity": "Selecteer de weer-entiteit die gebruikt wordt in de header.",
+          "alarm_entity": "Selecteer het alarmsysteem dat wordt weergegeven in de header."
+        }
+      }
+    }
+  }
+}

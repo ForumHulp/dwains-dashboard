@@ -1,39 +1,24 @@
-import logging
-
 from homeassistant.components.lovelace.dashboard import LovelaceYAML
 from homeassistant.components.lovelace import _register_panel
-
-from .const import DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
-
+from .const import DOMAIN, DEFAULT_TITLE, DEFAULT_ICON, DASHBOARD_URL
 
 def load_dashboard(hass, config_entry):
-    sidepanel_title = config_entry.options.get(
-        "sidepanel_title", "Dwains Dashboard"
-    )
-    sidepanel_icon = config_entry.options.get(
-        "sidepanel_icon", "mdi:alpha-d-box"
-    )
+    """Register Dwains Dashboard Lovelace panel (YAML mode)."""
+    title = config_entry.options.get("sidepanel_title", DEFAULT_TITLE)
+    icon = config_entry.options.get("sidepanel_icon", DEFAULT_ICON)
 
-    dashboard_url = "dwains-dashboard"
+    filename = hass.config.path("custom_components", DOMAIN, "lovelace", "ui-lovelace.yaml")
 
     dashboard_config = {
         "mode": "yaml",
-        "icon": sidepanel_icon,
-        "title": sidepanel_title,
-        "filename": hass.config.path(
-            "custom_components",
-            DOMAIN,
-            "lovelace",
-            "ui-lovelace.yaml",
-        ),
+        "title": title,
+        "icon": icon,
+        "filename": filename,
         "show_in_sidebar": True,
         "require_admin": False,
     }
 
-    hass.data["lovelace"].dashboards[dashboard_url] = LovelaceYAML(
-        hass, dashboard_url, dashboard_config
+    hass.data["lovelace"].dashboards[DASHBOARD_URL] = LovelaceYAML(
+        hass, DASHBOARD_URL, dashboard_config
     )
-
-    _register_panel(hass, dashboard_url, "yaml", dashboard_config, False)
+    _register_panel(hass, DASHBOARD_URL, "yaml", dashboard_config, False)
