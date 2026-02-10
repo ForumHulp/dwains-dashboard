@@ -119,13 +119,6 @@ def async_setup_notifications(hass: HomeAssistant):
         hass.bus.async_fire(EVENT_NOTIFICATIONS_UPDATED)
         _update_sensor()
 
-        _LOGGER.info(
-            "Dwains notification %s: %s",
-            "updated" if entity_id in notifications_dict else "created",
-            notification_id,
-        )
-
-
     # ─── Service: dismiss notification ───────────────────────────
     @callback
     def handle_dismiss(call):
