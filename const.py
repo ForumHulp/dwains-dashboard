@@ -2,6 +2,9 @@
 DOMAIN = "dwains_dashboard"
 VERSION = "3.8.2"
 FRONTEND_LOADED = "dwains_dashboard_frontend_loaded"
+WS_PREFIX = "dwains_dashboard/"
+RELOAD_HOME = "dwains_dashboard_homepage_card_reload"
+RELOAD_DEVICES = "dwains_dashboard_devicespage_card_reload"
 
 # Frontend JS paths
 FRONTEND_URL = f"/{DOMAIN}/js"

@@ -61,15 +61,45 @@ async def handle_ws_yaml_update(
     reload_events: list[str] | None = None,
     success_msg: str = "Saved successfully",
 ):
-    """Generic WS handler for updating YAML files asynchronously."""
-    if updates:
-        await async_update_yaml(hass, filepath, updates, key)
+    """
+    Generic WS handler for updating YAML files asynchronously.
 
-    if reload_events:
-        for ev in reload_events:
-            hass.bus.async_fire(ev)
+    - If file exists: load it, apply updates, save.
+    - If file does not exist: create it with updates.
+    - `updates` can be a dict or a callable that modifies the existing data.
+    - `key`: optional, for nested structures (like entity_id or device_id).
+    - `reload_events`: list of HA events to fire after saving.
+    """
+    try:
+        # Load existing data or create new
+        try:
+            current_data = await async_load_yaml(hass, filepath)
+        except FileNotFoundError:
+            current_data = OrderedDict()
 
-    connection.send_result(msg["id"], {"successful": success_msg})
+        # Apply updates
+        if callable(updates):
+            current_data = updates(current_data)
+        elif updates:
+            if key:
+                current_data.setdefault(key, OrderedDict()).update(updates)
+            else:
+                current_data.update(updates)
+
+        # Save YAML
+        await async_save_yaml(hass, filepath, current_data)
+
+        # Fire reload events
+        if reload_events:
+            for ev in reload_events:
+                hass.bus.async_fire(ev)
+
+        # Send success
+        connection.send_result(msg["id"], {"successful": success_msg})
+
+    except Exception as e:
+        _LOGGER.error("Failed to update YAML %s: %s", filepath, e)
+        connection.send_error(msg["id"], "update_failed", str(e))
 
 async def async_load_yaml_file(hass, file_path):
     """Load a YAML file safely in an executor."""

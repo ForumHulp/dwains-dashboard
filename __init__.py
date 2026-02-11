@@ -8,7 +8,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config import ConfigType
 from homeassistant.components import frontend, websocket_api
 
-from . import websocket as ws_module
+from . import websocket
+from .websocket import blueprints, configuration, more_pages, configuration, sorting, devices, entities, areas, cards
 from .const import DOMAIN
 from .load_plugins import load_plugins
 from .load_dashboard import load_dashboard
@@ -29,16 +30,15 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             "latest_version": ""
         }
 
-    # Automatically register all WebSocket commands defined in this module
-    ws_commands = [
-        func
-        for name, func in inspect.getmembers(ws_module, inspect.isfunction)
-        if name.startswith(("ws_", "websocket_"))
-    ]
+    # --- Register all WebSocket commands ---
+    ws_modules = [blueprints, configuration, more_pages, configuration, sorting, devices, entities, areas, cards]
 
-    # Sort commands alphabetically by function name for consistency
-    for func in sorted(ws_commands, key=lambda f: f.__name__):
-        websocket_api.async_register_command(hass, func)
+    for module in ws_modules:
+        for name, func in inspect.getmembers(module, inspect.isfunction):
+            # Only register functions that were decorated as websocket commands
+            if hasattr(func, "_ws_command"):
+                #_LOGGER.warning("Registering WS command: %s", name)
+                websocket_api.async_register_command(hass, func)
 
     # Load plugins and notifications
     await load_plugins(hass, DOMAIN)
@@ -67,7 +67,7 @@ async def async_remove_entry(hass, config_entry):
     frontend.async_remove_panel(hass, "dwains-dashboard")
 
 async def _update_listener(hass, config_entry):
-    _LOGGER.debug('Update_listener called')
+    _LOGGER.info('Update_listener called')
     await process_yaml(hass, config_entry)
     hass.bus.async_fire("dwains_dashboard_reload")
     return True

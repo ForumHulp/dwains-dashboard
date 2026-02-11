@@ -3,6 +3,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import selector
 from .const import DOMAIN
 
 HOMEPAGE_OPTIONS = {
@@ -17,6 +18,10 @@ HOMEPAGE_OPTIONS = {
     "weather_entity": "weather.thuis",
     "alarm_entity": "alarm_control_panel.home_alarm"
 }
+
+def _opt(self, key):
+    value = self._config_entry.options.get(key)
+    return value or None
 
 class DwainsDashboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
@@ -44,11 +49,6 @@ class DwainsDashboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(config_entry):
         return DwainsDashboardOptionsFlow(config_entry)
 
-
-def _get_entities_by_domain(hass, domain):
-    return {state.entity_id: state.entity_id for state in hass.states.async_all() if state.domain == domain}
-
-
 class DwainsDashboardOptionsFlow(config_entries.OptionsFlow):
     """OptionsFlow for Dwains Dashboard."""
 
@@ -57,26 +57,10 @@ class DwainsDashboardOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         if user_input is not None:
-            for key in ("weather_entity", "alarm_entity"):
-                values = user_input.get(key, [])
-                user_input[key] = values[0] if values else ""
+            #for key in ("weather_entity", "alarm_entity"):
+           #     values = user_input.get(key, [])
+            #    user_input[key] = values[0] if values else ""
             return self.async_create_entry(title="", data=user_input)
-
-        weather_entities = _get_entities_by_domain(self.hass, "weather")
-        alarm_entities = _get_entities_by_domain(self.hass, "alarm_control_panel")
-
-        weather_default = self._config_entry.options.get("weather_entity")
-        if weather_default and weather_default in weather_entities:
-            weather_default = [weather_default]
-        else:
-            weather_default = []
-
-        alarm_default = self._config_entry.options.get("alarm_entity")
-        if alarm_default and alarm_default in alarm_entities:
-            alarm_default = [alarm_default]
-        else:
-            alarm_default = []
-    
 
         schema_dict = {}
         for key, default in HOMEPAGE_OPTIONS.items():
@@ -84,15 +68,23 @@ class DwainsDashboardOptionsFlow(config_entries.OptionsFlow):
                 continue
             schema_dict[vol.Optional(key, default=self._config_entry.options.get(key, default))] = type(default)
 
-        schema_dict[vol.Optional(
-            "weather_entity",
-            default=weather_default
-        )] = cv.multi_select(weather_entities)
+        schema_dict[
+            vol.Optional(
+                "weather_entity",
+                default=_opt(self, "weather_entity")
+            )
+        ] = selector.selector(
+            {"entity": {"domain": "weather"}}
+        )
+        schema_dict[
+            vol.Optional(
+                "alarm_entity",
+                default=_opt(self, "alarm_entity")
+            )
+        ] = selector.selector(
+            {"entity": {"domain": "alarm_control_panel"}}
+        )
 
-        schema_dict[vol.Optional(
-            "alarm_entity",
-            default=alarm_default
-        )] = cv.multi_select(alarm_entities)
 
         schema = vol.Schema(schema_dict)
 
