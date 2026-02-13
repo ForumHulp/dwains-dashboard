@@ -5,10 +5,11 @@ import yaml
 import shutil
 from datetime import datetime
 from homeassistant.core import HomeAssistant
+from .const import DASHBOARD_URL
 
 def config_path(hass: HomeAssistant, *subpaths) -> str:
-    """Return full path inside dwains-dashboard/configs"""
-    return hass.config.path("dwains-dashboard/configs", *subpaths)
+    """Return full path inside dashboard/configs"""
+    return hass.config.path(f"{DASHBOARD_URL}/configs", *subpaths)
 
 async def async_load_yaml(hass, filepath, default=None):
     """Async-safe load YAML file."""

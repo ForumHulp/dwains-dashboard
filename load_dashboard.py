@@ -3,7 +3,7 @@ from homeassistant.components.lovelace import _register_panel
 from .const import DOMAIN, DEFAULT_TITLE, DEFAULT_ICON, DASHBOARD_URL
 
 def load_dashboard(hass, config_entry):
-    """Register Dwains Dashboard Lovelace panel (YAML mode)."""
+    """Register Dashboard Lovelace panel (YAML mode)."""
     title = config_entry.options.get("sidepanel_title", DEFAULT_TITLE)
     icon = config_entry.options.get("sidepanel_icon", DEFAULT_ICON)
 

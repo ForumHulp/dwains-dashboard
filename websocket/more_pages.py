@@ -1,5 +1,5 @@
 """
-WebSocket commands for managing Dwains Dashboard 'More Pages'.
+WebSocket commands for managing Dashboard 'More Pages'.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.components import websocket_api
 from homeassistant.util import slugify
 
-from ..const import WS_PREFIX, RELOAD_HOME, RELOAD_DEVICES
+from ..const import DOMAIN, WS_PREFIX, RELOAD_HOME, RELOAD_DEVICES
 from ..utils import config_path, async_remove_file_or_folder, async_save_yaml
 from ..process_yaml import reload_configuration
 from .helpers import ws_send_success, ws_send_error, ws_safe_json_load, ws_yaml_edit_command
@@ -77,15 +77,18 @@ def ws_edit_more_page_factory():
         )
 
         # Reload events
-        hass.bus.async_fire(RELOAD_EVENT)
-        hass.bus.async_fire(RELOAD_NAV_EVENT)
+        #hass.bus.async_fire("{{ DOMAIN }}.reload")
+        await hass.services.async_call(DOMAIN, "reload")
+        hass.bus.async_fire(f"{DOMAIN}.navigation_card_reload")
         await reload_configuration(hass)
 
         ws_send_success(connection, msg["id"], "More page saved")
 
     # Return handler wrapped as websocket command
     from homeassistant.components import websocket_api
-    return websocket_api.async_response(websocket_api.websocket_command({"type": f"{WS_PREFIX}edit_more_page"})(handler))
+    return websocket_api.async_response(
+        websocket_api.websocket_command(EDIT_MORE_PAGE_SCHEMA)(handler)
+    )
 
 ws_edit_more_page = ws_edit_more_page_factory()
 

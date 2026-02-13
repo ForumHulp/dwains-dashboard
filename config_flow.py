@@ -4,10 +4,10 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
-from .const import DOMAIN
+from .const import DOMAIN, DEFAULT_TITLE
 
 HOMEPAGE_OPTIONS = {
-    "sidepanel_title": "Dwains Dashboard",
+    "sidepanel_title": DEFAULT_TITLE,
     "sidepanel_icon": "mdi:alpha-d-box",
     "disable_clock": False,
     "am_pm_clock": True,
@@ -23,14 +23,14 @@ def _opt(self, key):
     value = self._config_entry.options.get(key)
     return value or None
 
-class DwainsDashboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class DashboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
 
         if user_input is not None:
             return self.async_create_entry(
-                title="Dwains Dashboard",
+                title=DEFAULT_TITLE,
                 data=user_input,
             )
 
@@ -47,10 +47,10 @@ class DwainsDashboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return DwainsDashboardOptionsFlow(config_entry)
+        return DashboardOptionsFlow(config_entry)
 
-class DwainsDashboardOptionsFlow(config_entries.OptionsFlow):
-    """OptionsFlow for Dwains Dashboard."""
+class DashboardOptionsFlow(config_entries.OptionsFlow):
+    """OptionsFlow for Dashboard."""
 
     def __init__(self, config_entry):
         self._config_entry = config_entry

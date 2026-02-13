@@ -1,5 +1,5 @@
 """
-Dwains Dashboard Notifications Backend with Sensor
+Dashboard Notifications Backend with Sensor
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-ENTITY_ID_FORMAT = DOMAIN + ".{}"
+ENTITY_ID_FORMAT = "dashboard" + ".{}"
 DEFAULT_OBJECT_ID = "notification"
 STATE = "notifying"
 
@@ -46,7 +46,7 @@ def slugify(value: str) -> str:
 
 @callback
 def async_setup_notifications(hass: HomeAssistant):
-    """Set up Dwains Dashboard notifications backend with sensor."""
+    """Set up Dashboard notifications backend with sensor."""
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][DATA_NOTIFICATIONS] = OrderedDict()
@@ -56,7 +56,7 @@ def async_setup_notifications(hass: HomeAssistant):
     @callback
     def _update_sensor():
         hass.states.async_set(
-            "sensor.dwains_notifications",
+            "sensor.dashboard_notifications",
             len(notifications_dict),
             {
                 "notifications": list(notifications_dict.values())
@@ -134,17 +134,17 @@ def async_setup_notifications(hass: HomeAssistant):
                     "action": "dismiss",
                     "notification_id": notification_id,
                 })
-                _LOGGER.info("Dwains notification dismissed: %s", notification_id)
+                _LOGGER.info("Notification dismissed: %s", notification_id)
             else:
                 _LOGGER.warning("Notification %s not found", notification_id)
         else:
             # Dismiss all notifications
             for entity_id in list(notifications_dict.keys()):
                 hass.states.async_remove(entity_id)
-                _LOGGER.info("Dwains notification dismissed: %s", entity_id)
+                _LOGGER.info("Notification dismissed: %s", entity_id)
             notifications_dict.clear()
             hass.bus.async_fire(EVENT_NOTIFICATIONS_UPDATED, {"action": "dismiss_all"})
-            _LOGGER.info("All Dwains notifications dismissed")
+            _LOGGER.info("All notifications dismissed")
 
         # Update the summary sensor after dismissal
         _update_sensor()
@@ -159,7 +159,7 @@ def async_setup_notifications(hass: HomeAssistant):
             notification[ATTR_STATUS] = STATUS_READ
             hass.bus.async_fire(EVENT_NOTIFICATIONS_UPDATED)
             _update_sensor()
-            _LOGGER.info("Dwains notification marked read: %s", notification_id)
+            _LOGGER.info("Notification marked read: %s", notification_id)
         else:
             _LOGGER.warning("Notification %s not found", notification_id)
 
@@ -170,7 +170,7 @@ def async_setup_notifications(hass: HomeAssistant):
 
     # ─── WebSocket: get notifications ───────────────────────────
     @websocket_api.websocket_command({
-        "type": "dwains_dashboard_notification/get"
+        "type": f"{DOMAIN}_notification/get"
     })
     @websocket_api.async_response
     async def ws_get_notifications(hass, connection, msg):
@@ -190,7 +190,7 @@ def async_setup_notifications(hass: HomeAssistant):
 
     # ─── Backward-compatible WebSocket ─────────────────────────
     @websocket_api.websocket_command({
-        "type": "dwains_dashboard/notifications"
+        "type": f"{DOMAIN}/notifications"
     })
     @websocket_api.async_response
     async def ws_get_notifications_old(hass, connection, msg):

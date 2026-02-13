@@ -10,12 +10,12 @@ from annotatedyaml import loader
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from .const import DOMAIN, DASHBOARD_URL
 
 _LOGGER = logging.getLogger(__name__)
 
 # --- Global dictionaries ---
-dwains_dashboard_more_pages = {}
+dashboard_more_pages = {}
 llgen_config = {}
 
 # --- Jinja2 Environment ---
@@ -28,7 +28,7 @@ def render_template(fname: str, args: dict) -> io.StringIO:
         template = jinja_env.get_template(fname)
         rendered_content = template.render({
             **args,
-            "_dd_more_pages": dwains_dashboard_more_pages,
+            "_dd_more_pages": dashboard_more_pages,
             "_global": llgen_config
         })
         stream = io.StringIO(rendered_content)
@@ -139,14 +139,14 @@ async def _ensure_page_config(hass: HomeAssistant, more_pages_path: str, subdir:
             _LOGGER.error("Failed to read config.yaml in %s: %s", subdir, e)
             config = await hass.async_add_executor_job(write_default_config, config_yaml_path, subdir)
 
-    dwains_dashboard_more_pages[subdir] = {
+    dashboard_more_pages[subdir] = {
         "name": config["name"],
         "icon": config["icon"],
-        "path": os.path.join("dwains-dashboard", "configs", "more_pages", subdir, "page.yaml"),
+        "path": os.path.join(DASHBOARD_URL, "configs", "more_pages", subdir, "page.yaml"),
     }
 
 async def _scan_more_pages(hass: HomeAssistant):
-    more_pages_path = hass.config.path("dwains-dashboard/configs/more_pages")
+    more_pages_path = hass.config.path(f"{DASHBOARD_URL}/configs/more_pages")
     if not os.path.isdir(more_pages_path):
         return
 
@@ -164,14 +164,14 @@ async def process_yaml(hass: HomeAssistant, config_entry):
                 llgen_config.update(loaded_yaml)
 
     await _scan_more_pages(hass)
-    hass.bus.async_fire("dwains_dashboard_reload")
+    hass.bus.async_fire("{{ DOMAIN }}.reload")
 
     async def handle_reload(call):
-        _LOGGER.info("Reload Dwains Dashboard Configuration")
+        _LOGGER.warning("Reload dashboard configuration")
         await reload_configuration(hass)
 
     hass.services.async_register(DOMAIN, "reload", handle_reload)
 
 async def reload_configuration(hass: HomeAssistant):
     await _scan_more_pages(hass)
-    hass.bus.async_fire("dwains_dashboard_reload")
+    hass.bus.async_fire("{{ DOMAIN }}.reload")

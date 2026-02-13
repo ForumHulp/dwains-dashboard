@@ -1,5 +1,5 @@
 """
-WebSocket configuration commands for Dwains Dashboard.
+WebSocket configuration commands for Dashboard.
 """
 
 from __future__ import annotations
@@ -133,7 +133,7 @@ ws_edit_device_button = ws_yaml_edit_command(
         "icon": "icon",
         "show_in_navbar": "showInNavbar",
     },
-    reload_events=[RELOAD_DEVICES, "dwains_dashboard_navigation_card_reload"],
+    reload_events=[RELOAD_DEVICES, f"{DOMAIN}_navigation_card_reload"],
     success_msg="Device saved",
 )
 

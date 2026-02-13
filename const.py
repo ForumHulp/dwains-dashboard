@@ -16,7 +16,6 @@ DEFAULT_TITLE = "Dwains Dashboard"
 DEFAULT_ICON = "mdi:alpha-d-box"
 DASHBOARD_URL = "dwains-dashboard"
 
-
 # Notifications
 DATA_NOTIFICATIONS = "notifications"
 

@@ -1,10 +1,20 @@
-# Start of the dwains dashboard ui-lovelace.yaml
+# Start of the dashboard ui-lovelace.yaml
 card_mod:
   global: |
+    /* Global feature height for all cards */
     hui-card-features {
-      --feature-height: var(--feature-height);
+      --feature-height: 20px !important;
     }
-#Load all settings for Dwains Dashboard
+
+    /* Global slider styling for all sliders */
+    ha-control-slider,
+    ha-control-slider::part(container),
+    ha-slider,
+    ha-slider::part(track),
+    ha-slider::part(handle) {
+      --control-slider-thickness: 20px !important;
+    }
+#Load all settings for Dashboard
 dwains_dashboard:
   active: true
 

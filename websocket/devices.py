@@ -8,7 +8,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 
-from ..const import WS_PREFIX, RELOAD_DEVICES
+from ..const import DOMAIN, WS_PREFIX, RELOAD_DEVICES
 from ..utils import (
     config_path,
     async_save_yaml,
@@ -37,7 +37,7 @@ async def ws_edit_device_button(hass: HomeAssistant, connection, msg: Mapping[st
             "show_in_navbar": msg.get("showInNavbar")
         },
         key=msg.get("device"),
-        reload_events=[RELOAD_DEVICES, "dwains_dashboard_navigation_card_reload"],
+        reload_events=[RELOAD_DEVICES, f"{DOMAIN}_navigation_card_reload"],
         success_msg="Device button saved"
     )
 
@@ -113,7 +113,7 @@ async def ws_edit_device_popup(hass: HomeAssistant, connection, msg: Mapping[str
     await handle_ws_yaml_update(
         hass, connection, msg, filepath,
         updates=popup_data,
-        reload_events=["dwains_dashboard_reload"],
+        reload_events = [f"{DOMAIN}_reload"],
         success_msg="Device popup saved successfully"
     )
 
@@ -133,7 +133,7 @@ async def ws_remove_device_popup(hass: HomeAssistant, connection, msg: Mapping[s
 
     filepath = config_path(hass, "cards/devices_popup", f"{domain}.yaml")
     await async_remove_file_or_folder(hass, filepath)
-    hass.bus.async_fire("dwains_dashboard_reload")
+    hass.bus.async_fire(f"{DOMAIN}.reload")
     ws_send_success(connection, msg, "Device popup removed successfully")
 
 # -----------------------------

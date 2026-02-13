@@ -74,7 +74,7 @@ async def ws_edit_area_bool_value(hass: HomeAssistant, connection, msg: Mapping[
     vol.Required("sortType"): str,
 })
 async def ws_sort_area_button(hass, connection, msg: Mapping[str, Any]):
-    """Sort Dwain areas by front-end order while keeping all attributes."""
+    """Sort areas by front-end order while keeping all attributes."""
     try:
         sort_data = json.loads(msg["sortData"])
         if not isinstance(sort_data, list):

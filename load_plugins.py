@@ -4,7 +4,7 @@ from .const import DOMAIN, VERSION, FRONTEND_LOADED, FRONTEND_URL, FRONTEND_DIR,
 import os
 
 async def load_plugins(hass, name: str):
-    """Load Dwains Dashboard frontend JS only once."""
+    """Load Dashboard frontend JS only once."""
     if hass.data.get(FRONTEND_LOADED):
         return
     hass.data[FRONTEND_LOADED] = True

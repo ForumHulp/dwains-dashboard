@@ -10,7 +10,7 @@ from homeassistant.components import frontend, websocket_api
 
 from . import websocket
 from .websocket import blueprints, configuration, more_pages, configuration, sorting, devices, entities, areas, cards
-from .const import DOMAIN
+from .const import DOMAIN, DASHBOARD_URL
 from .load_plugins import load_plugins
 from .load_dashboard import load_dashboard
 from .process_yaml import process_yaml
@@ -63,11 +63,11 @@ async def async_setup_entry(hass, config_entry):
     return True
 
 async def async_remove_entry(hass, config_entry):
-    _LOGGER.warning("Dwains Dashboard is now uninstalled.")
-    frontend.async_remove_panel(hass, "dwains-dashboard")
+    _LOGGER.warning("Dashboard is now uninstalled.")
+    frontend.async_remove_panel(hass, DASHBOARD_URL)
 
 async def _update_listener(hass, config_entry):
     _LOGGER.info('Update_listener called')
     await process_yaml(hass, config_entry)
-    hass.bus.async_fire("dwains_dashboard_reload")
+    hass.bus.async_fire("{{ DOMAIN }}.reload")
     return True

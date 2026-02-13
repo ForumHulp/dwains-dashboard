@@ -1,5 +1,5 @@
 """
-WebSocket commands for Dwains Dashboard blueprints.
+WebSocket commands for Dashboard blueprints.
 """
 
 import os
@@ -10,7 +10,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.components import websocket_api
 
-from ..const import WS_PREFIX
+from ..const import WS_PREFIX, DASHBOARD_URL
 from ..utils import async_save_yaml, async_load_yaml_file, async_remove_file_or_folder
 from .helpers import ws_send_success, ws_send_error, ws_safe_json_load
 
@@ -23,7 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 @websocket_api.websocket_command({vol.Required("type"): f"{WS_PREFIX}get_blueprints"})
 async def ws_get_blueprints(hass: HomeAssistant, connection, msg: Mapping[str, Any]):
     """Return all installed blueprints."""
-    blueprints_dir = hass.config.path("dwains-dashboard/blueprints")
+    blueprints_dir = hass.config.path(f"{DASHBOARD_URL}/blueprints")
     blueprints = {}
 
     if not os.path.isdir(blueprints_dir):
@@ -57,7 +57,7 @@ async def ws_install_blueprint(hass: HomeAssistant, connection, msg: Mapping[str
     """Install a blueprint."""
     filename = msg["filename"]
     data = msg["data"]
-    blueprints_dir = hass.config.path("dwains-dashboard/blueprints")
+    blueprints_dir = hass.config.path(f"{DASHBOARD_URL}/blueprints")
     os.makedirs(blueprints_dir, exist_ok=True)
     filepath = os.path.join(blueprints_dir, filename)
 
@@ -82,7 +82,7 @@ async def ws_install_blueprint(hass: HomeAssistant, connection, msg: Mapping[str
 async def ws_delete_blueprint(hass: HomeAssistant, connection, msg: Mapping[str, Any]):
     """Delete a blueprint."""
     filename = msg["blueprint"]
-    path = hass.config.path("dwains-dashboard/blueprints", filename)
+    path = hass.config.path(f"{DASHBOARD_URL}/blueprints", filename)
 
     try:
         await async_remove_file_or_folder(hass, path)

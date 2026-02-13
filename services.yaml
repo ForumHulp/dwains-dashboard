@@ -1,5 +1,5 @@
 reload:
-  description: Reload dashboard configuration from Dwains dashboard
+  description: Reload dashboard configuration from dashboard
 
 notification_create:
   description: Show a notification in the frontend.

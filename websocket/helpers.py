@@ -1,5 +1,5 @@
 """
-Shared WebSocket helpers for Dwains Dashboard.
+Shared WebSocket helpers for Dashboard.
 """
 
 from __future__ import annotations
@@ -86,20 +86,6 @@ def ws_yaml_edit_command(
     reload_events: list[str] | None = None,
     success_msg: str = "Saved",
 ):
-    """
-    Generate a WebSocket command handler for editing YAML files.
-
-    Example usage:
-
-    ws_edit_area = ws_yaml_edit_command(
-        ws_type="dwains_dashboard/edit_area",
-        yaml_path=lambda hass: config_path(hass, "areas.yaml"),
-        key_field="areaId",
-        updates_map={"icon": "icon", "floor": "floor"},
-        reload_events=["dwains_dashboard_homepage_card_reload"],
-        success_msg="Area saved",
-    )
-    """
 
     reload_events = reload_events or []
 

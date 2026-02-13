@@ -1,5 +1,5 @@
 """
-WebSocket command registration for Dwains Dashboard.
+WebSocket command registration for Dashboard.
 
 Importing this package automatically registers all
 WebSocket commands via their decorators.

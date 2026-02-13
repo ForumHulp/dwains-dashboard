@@ -8,7 +8,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 
-from ..const import WS_PREFIX, RELOAD_HOME, RELOAD_DEVICES
+from ..const import DOMAIN, WS_PREFIX, RELOAD_HOME, RELOAD_DEVICES
 from ..utils import config_path, async_save_yaml
 from .helpers import ws_send_success, ws_send_error, handle_ws_yaml_update
 
@@ -124,7 +124,7 @@ async def ws_edit_entity_popup(hass: HomeAssistant, connection, msg: Mapping[str
     await handle_ws_yaml_update(
         hass, connection, msg, popup_file,
         updates=popup_data,
-        reload_events=["dwains_dashboard_reload"],
+        reload_events = [f"{DOMAIN}_reload"],
         success_msg="Entity popup saved successfully"
     )
 
@@ -136,7 +136,7 @@ async def ws_edit_entity_popup(hass: HomeAssistant, connection, msg: Mapping[str
     await handle_ws_yaml_update(
         hass, connection, msg, config_path(hass, "entities.yaml"),
         updates=update_entities,
-        reload_events=["dwains_dashboard_reload"]
+        reload_events = [f"{DOMAIN}_reload"]
     )
 
 # -----------------------------
