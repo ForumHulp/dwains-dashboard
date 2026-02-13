@@ -30,7 +30,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-ENTITY_ID_FORMAT = "dashboard" + ".{}"
+ENTITY_ID_FORMAT = "dashboard.{}"
 DEFAULT_OBJECT_ID = "notification"
 STATE = "notifying"
 
