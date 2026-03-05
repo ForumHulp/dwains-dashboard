@@ -19,7 +19,7 @@ dwains_dashboard:
   active: true
 
 #For people who want to use button card templates
-button_card_templates: 
+button_card_templates:
   !include_dir_merge_named ../../../dwains-dashboard/button_card_templates
 
 #For people who want to use apexcharts card templates

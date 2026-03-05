@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from ..const import DOMAIN, WS_PREFIX, RELOAD_HOME, RELOAD_DEVICES
 from ..utils import config_path, async_save_yaml
 from .helpers import ws_send_success, ws_send_error, handle_ws_yaml_update
+from .storage_helpers import async_handle_ws_storage_update
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -180,8 +181,8 @@ async def ws_edit_entity_bool_value(hass: HomeAssistant, connection, msg: Mappin
     if not key:
         return ws_send_error(connection, msg, "Missing key")
 
-    await handle_ws_yaml_update(
-        hass, connection, msg, config_path(hass, "entities.yaml"),
+    await async_handle_ws_storage_update(
+        hass, connection, msg,
         updates={key: msg.get("value")},
         key=msg.get("entityId"),
         reload_events=[RELOAD_HOME, RELOAD_DEVICES],
@@ -214,8 +215,8 @@ async def ws_edit_entities_bool_value(hass: HomeAssistant, connection, msg: Mapp
             data.setdefault(entity_id, OrderedDict())[key] = value
         return data
 
-    await handle_ws_yaml_update(
-        hass, connection, msg, config_path(hass, "entities.yaml"),
+    await async_handle_ws_storage_update(
+        hass, connection, msg,
         updates=update_entities,
         reload_events=[RELOAD_HOME, RELOAD_DEVICES],
         success_msg="Entities bool value set successfully"
@@ -233,16 +234,28 @@ async def ws_edit_entities_bool_value(hass: HomeAssistant, connection, msg: Mapp
 async def ws_sort_entity(hass: HomeAssistant, connection, msg: Mapping[str, Any]):
     """Handle sorting entity cards."""
     try:
-        sort_data = json.loads(msg["sortData"])
+        sort_data = json.loads(msg.get("sortData", "[]"))
     except json.JSONDecodeError:
         return ws_send_error(connection, msg, "invalid_json", "Invalid sort data")
 
-    entities = await handle_ws_yaml_update(hass, connection, msg, config_path(hass, "entities.yaml"), dry_run=True)
-    if entities is None:
-        entities = OrderedDict()
+    sort_type = msg.get("sortType")
 
-    for num, entity_id in enumerate(sort_data, start=1):
-        entities.setdefault(entity_id, OrderedDict())[msg["sortType"]] = num
+    if not isinstance(sort_data, list):
+        return ws_send_error(connection, msg, "invalid_format", "sortData must be a list")
 
-    await async_save_yaml(hass, config_path(hass, "entities.yaml"), entities)
-    ws_send_success(connection, msg, "Entity cards sorted successfully")
+    # --------------------------------
+    # Update function
+    # --------------------------------
+    def update_entities(data):
+        for num, entity_id in enumerate(sort_data, start=1):
+            data.setdefault(entity_id, OrderedDict())[sort_type] = num
+        return data
+
+    await async_handle_ws_storage_update(
+        hass,
+        connection,
+        msg,
+        updates=update_entities,
+        reload_events=[RELOAD_HOME, RELOAD_DEVICES],
+        success_msg="Entity cards sorted successfully",
+    )

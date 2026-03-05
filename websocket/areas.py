@@ -27,17 +27,33 @@ _LOGGER = logging.getLogger(__name__)
     vol.Optional("disableArea"): bool,
 })
 async def ws_edit_area_button(hass: HomeAssistant, connection, msg: Mapping[str, Any]):
-    """Edit an area button's metadata."""
-    await handle_ws_yaml_update(
-        hass, connection, msg, config_path(hass, "areas.yaml"),
-        updates={
-            "icon": msg.get("icon"),
-            "floor": msg.get("floor"),
-            "disabled": msg.get("disableArea")
-        },
-        key=msg.get("areaId"),
-        reload_events=[RELOAD_HOME],
-        success_msg="Area button saved"
+    area_id = msg["areaId"]
+
+    area_reg = area_registry.async_get(hass)
+    area = area_reg.async_get_area(area_id)
+
+    if area is None:
+        return ws_send_error(connection, msg, "Area not found")
+
+    update_data = {}
+
+    # Update icon
+    if "icon" in msg:
+        update_data["icon"] = msg["icon"]
+
+    # Update floor (maps to floor_id in registry)
+    if "floor" in msg:
+        update_data["floor_id"] = msg["floor"]
+
+    if not update_data:
+        return ws_send_error(connection, msg, "No valid fields to update")
+
+    area_reg.async_update(area_id, **update_data)
+
+    connection.send_message(
+        websocket_api.result_message(
+            msg["id"], "Area updated successfully"
+        )
     )
 
 # -----------------------------
@@ -74,70 +90,32 @@ async def ws_edit_area_bool_value(hass: HomeAssistant, connection, msg: Mapping[
     vol.Required("sortType"): str,
 })
 async def ws_sort_area_button(hass, connection, msg: Mapping[str, Any]):
-    """Sort areas by front-end order while keeping all attributes."""
-    try:
-        sort_data = json.loads(msg["sortData"])
-        if not isinstance(sort_data, list):
-            raise ValueError
-    except (json.JSONDecodeError, ValueError):
-        connection.send_message(
-            websocket_api.error_message(msg["id"], "invalid_json", "Invalid sort data")
-        )
-        return
+    """Reorder areas in registry based on frontend order."""
 
-    # Load existing area registry entries
-    area_reg = hass.data.get("area_registry_storage")  # or your helper
-    if not area_reg:
-        from homeassistant.helpers import area_registry
-        area_reg = area_registry.async_get(hass)
+    sort_data = msg["sortData"]
 
-    # Build a dict keyed by area id containing all existing attributes
-    current_areas = {a.id: a for a in area_reg.async_list_areas()}
+    area_reg = area_registry.async_get(hass)
 
-    # Build new ordered list based on front-end sortData
-    new_ordered = []
+    # Current areas
+    current_areas = {area.id: area for area in area_reg.async_list_areas()}
+
+    reordered = []
+
     for area_id in sort_data:
         if area_id in current_areas:
-            new_ordered.append(current_areas[area_id])
+            reordered.append(current_areas.pop(area_id))
 
-    # Append any areas not included in sortData
-    for area_id, area in current_areas.items():
-        if area_id not in sort_data:
-            new_ordered.append(area)
+    reordered.extend(current_areas.values())
 
-    # Convert AreaEntry objects to dicts suitable for storage/JSON
-    def area_to_dict(a):
-        return {
-            "aliases": list(a.aliases),
-            "floor_id": a.floor_id,
-            "humidity_entity_id": a.humidity_entity_id,
-            "icon": a.icon,
-            "id": a.id,
-            "labels": list(a.labels),
-            "name": a.name,
-            "picture": a.picture,
-            "temperature_entity_id": a.temperature_entity_id,
-            "created_at": a.created_at.isoformat(),
-            "modified_at": a.modified_at.isoformat(),
-        }
+    # 🔥 IMPORTANT PART
+    # Replace internal data structure
+    area_reg.areas = {area.id: area for area in reordered}
 
-    areas_json_list = [area_to_dict(a) for a in new_ordered]
+    # Schedule save (do NOT await)
+    area_reg.async_schedule_save()
 
-    # Build final structure like core.area_registry storage
-    final_registry = {
-        "version": 1,
-        "minor_version": 9,
-        "key": "core.area_registry",
-        "data": {
-            "areas": areas_json_list
-        }
-    }
-
-    # Save to storage file
-    store = area_registry.Store(hass, 1, "core.area_registry")
-    await store.async_save(final_registry["data"])
-
-    # Respond to frontend
     connection.send_message(
-        websocket_api.result_message(msg["id"], "Area buttons sorted successfully")
+        websocket_api.result_message(
+            msg["id"], "Area registry reordered successfully"
+        )
     )
